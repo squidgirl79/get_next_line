@@ -6,108 +6,94 @@
 /*   By: embrugge <embrugge@student.codam.nl>       ,'        `.    \  /      */
 /*                                                  |  v~       \___/  |      */
 /*   Created: 2026/10/17 21:36:15 by embrugge     ~^~^~^~^~^~^~^~^~^~^~^~^~   */
-/*   Updated: 2026/10/17 22:48:44 by embrugge        ~       ~       ~        */
+/*   Updated: 2026/10/26 13:13:28 by embrugge        ~       ~       ~        */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "get_next_line.h"
 
-size_t	gnl_new_buffer_size(char *ptr, char *blorbo);
+char	*append_blorbo(char *old_ret, char *blorbo);
 
-int	inspect_blorbo(char *blorbo)
+size_t	count_bufs(char *ptr, char *blorbo);
+
+void	drain_blorbo(char **ret, char *blorbo)
 {
-	int	index;
-
-	index = 0;
-	while (index < BUFFER_SIZE)
-		if (blorbo[index++] == '\n')
-			return (0);
-	return (1);
-}
-
-char	*drain_blorbo(char *blorbo)
-{
-	int		content;
-	int		index;
-	char	*ret;
-
-	if (!*blorbo)
+	if (!*ret)
 	{
-		ret = (char *)malloc(sizeof(char));
-		if (!ret)
-			return (NULL);
-		*ret = '\0';
-		return (ret);
+		*ret = (char *)malloc(sizeof(char));
+		if (!*ret)
+			return ;
+		**ret = 0;
 	}
-	content = 0;
-	index = 0;
-	while (index++ < BUFFER_SIZE)
-		if (*blorbo++ == '\n')
-			break ;
-	while (index++ < BUFFER_SIZE)
-		content++;
-	ret = (char *)malloc(content + 1 * sizeof(char));
-	if (!ret)
-		return (NULL);
-	index = 0;
-	while (index < content)
-		ret[index++] = *blorbo++;
-	ret[index] = '\0';
-	return (ret);
+	*ret = append_blorbo(*ret, blorbo);
 }
 
-void	clean_blorbo(char *blorbo)
+void	shove_blorbo(char *blorbo)
 {
-	int	i;
+	int	index_src;
+	int	index_dst;
 
-	i = 0;
-	while (i++ < BUFFER_SIZE)
-		*blorbo++ = '\0';
+	index_src = 0;
+	index_dst = 0;
+	while (index_src < BUFFER_SIZE)
+		if (blorbo[index_src++] == DELIMITER)
+			break ;
+	while (index_src < BUFFER_SIZE)
+		blorbo[index_dst++] = blorbo[index_src++];
+	while (index_dst < BUFFER_SIZE)
+		blorbo[index_dst++] = '\0';
 }
 
-char	*feed_blorbo(char *ret, char *blorbo)
+char	*append_blorbo(char *old_ret, char *blorbo)
 {
 	char	*new_ret;
-	size_t	alloc_size;
-	int		index;
-	int		blorbo_index;
+	int		i;
+	char	*blorbo_start;
 
-	alloc_size = gnl_new_buffer_size(ret, blorbo);
-	new_ret = (char *)malloc((alloc_size + 2) * sizeof(char));
+	blorbo_start = blorbo;
+	new_ret = (char *)malloc((count_bufs(old_ret, blorbo) + 1) * sizeof(char));
 	if (!new_ret)
 		return (NULL);
-	index = 0;
-	blorbo_index = 0;
-	while (ret[index])
+	i = -1;
+	while (old_ret[++i])
+		new_ret[i] = old_ret[i];
+	while (*blorbo)
 	{
-		new_ret[index] = ret[index];
-		index++;
-	}
-	while (blorbo_index++ < BUFFER_SIZE)
-	{
-		new_ret[index++] = *blorbo;
-		if (*blorbo++ == '\n')
+		if (*blorbo == DELIMITER)
+		{
+			new_ret[i++] = *blorbo++;
 			break ;
+		}
+		new_ret[i++] = *blorbo++;
 	}
-	new_ret[index] = '\0';
-	free(ret);
+	new_ret[i] = '\0';
+	free(old_ret);
+	shove_blorbo(blorbo_start);
 	return (new_ret);
 }
 
-size_t	gnl_new_buffer_size(char *ptr, char *blorbo)
+size_t	count_bufs(char *ptr, char *blorbo)
 {
-	size_t	ret;
-	int		index;
+	size_t	size;
 
-	ret = 0;
-	index = 0;
+	size = 0;
 	while (*ptr++)
-		ret++;
-	while (index < BUFFER_SIZE)
+		size++;
+	while (*blorbo)
 	{
-		if (blorbo[index++] == '\n')
+		size++;
+		if (*blorbo++ == DELIMITER)
 			break ;
-		ret++;
 	}
-	return (ret);
+	return (size);
+}
+
+int	return_value_not_ready(char *ret)
+{
+	if (!ret)
+		return (1);
+	while (*ret)
+		if (*ret++ == DELIMITER)
+			return (0);
+	return (1);
 }
